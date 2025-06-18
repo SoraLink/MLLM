@@ -3,4 +3,4 @@
 *.mp4
 /GLIP/
 /GroundingDINO/
-/llava/
+llava/
