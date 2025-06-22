@@ -6,17 +6,20 @@ from pathlib import Path
 
 import cv2
 from matplotlib import pyplot as plt
-from openai import OpenAI
+# from openai import OpenAI
+# import openai
+
 
 import matplotlib
 from tqdm import tqdm
 
 matplotlib.use('TkAgg')
-
-client = OpenAI(
-    api_key="sk-OUx2ZUIE43zd4ar198189277E53a4c52829eFbE46e863680",  # 换成你的 key
-    base_url="https://api.gptapi.us/v1"
-)
+# openai.api_key = "sk-OUx2ZUIE43zd4ar198189277E53a4c52829eFbE46e863680"
+client = None
+# client = OpenAI(
+#     api_key="sk-OUx2ZUIE43zd4ar198189277E53a4c52829eFbE46e863680",  # 换成你的 key
+#     base_url="https://api.gptapi.us/v1"
+# )
 
 ANNOTATION_ROOT = "./dataset/Annotation"
 DATA_ROOT = "./dataset/all_data"
@@ -45,6 +48,7 @@ class MLLM:
 
     def retrieve_grid_number(self, response_content):
         numbers = re.findall(r'\d+', response_content)
+        numbers = [int(number) for number in numbers]
         return numbers
 
     def send_request(self, img, format='.jpg'):
@@ -136,7 +140,8 @@ def test():
     plt.show()
 
 
-def compute_IoU(prediction: set, annotation: set):
+
+def compute_grid_IoU(prediction: set, annotation: set):
     intersection = prediction.intersection(annotation)
     union = prediction.union(annotation)
     IoU = len(intersection) / len(union)
@@ -156,7 +161,7 @@ def evaluate(image_path, annotation_path):
     annotation_grids = get_annotation_grid_number(annotation_path, img_rgb)
     mllm = MLLM.get_instance()
     predict_grids, content = mllm.send_request(img_rgb)
-    iou = compute_IoU(set(predict_grids), set(annotation_grids))
+    iou = compute_grid_IoU(set(predict_grids), set(annotation_grids))
     img_with_box = add_bbox(annotation_path, img_rgb)
     return {
         'iou': iou,
