@@ -1,6 +1,10 @@
+import base64
+import io
+
 import cv2
 import torch
 from PIL import Image
+from huggingface_hub import InferenceClient
 from transformers import AutoProcessor, AutoModelForCausalLM, LlavaProcessor, LlavaForConditionalGeneration
 
 
@@ -34,12 +38,12 @@ class MLLM_LLAVA:
 
         self.prompt2 = (
             "<image>\n"
-            # "what is in the image"
-            # 'Please look at this image, which is divided into 24 numbered regions '
-            # '(from left to right, top to bottom). '
-            # 'Please output the numbered regions that contain smoke in JSON format as '
-            # 'a list of dicts like [{"region": 1}, {"region": 2}].'
-            "请你只用一句话描述图片中是否有烟雾。如果有，出现在哪些编号区域？不要输出其他内容。"
+            "what is in the image"
+            'Please look at this image, which is divided into 24 numbered regions '
+            '(from left to right, top to bottom). '
+            'Please output the numbered regions that contain smoke in JSON format as '
+            'a list of dicts like [{"region": 1}, {"region": 2}].'
+            # "请你只用一句话描述图片中是否有烟雾。如果有，出现在哪些编号区域？不要输出其他内容。"
         )
 
     def predict(self, image, is_grid=False):
@@ -73,3 +77,62 @@ class MLLM_LLAVA:
         )
 
         return answer
+
+
+class InternVL3:
+    _instance = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def __init__(self):
+        self.prompt1 = (
+            "<image>\n"
+            'Detect all smoke and output bounding box like'
+            '[[x1 y1 x2 y2], [x1 y1 x2 y2]]'
+            "If you cannot find any smoke return 'None'"
+        )
+
+        self.prompt2 = (
+            "<image>\n"
+            "what is in the image"
+            'Please look at this image, which is divided into 24 numbered regions '
+            '(from left to right, top to bottom). '
+            'Please output the numbered regions that contain smoke in JSON format as '
+            'a list of dicts like [{"region": 1}, {"region": 2}].'
+        )
+        self.client = InferenceClient(
+            model="OpenGVLab/InternVL3-38B-hf",
+            token="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"  # ← 换成你自己的 token
+        )
+
+    def predict(self, image, is_grid=False):
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = Image.fromarray(image)
+
+        buffer = io.BytesIO()
+        image.save(buffer, format="JPEG")
+        b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        data_url = f"data:image/jpeg;base64,{b64}"
+        prompt = self.prompt2 if is_grid else self.prompt1
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": data_url}},
+                    {"type": "text", "text": prompt}
+                ]
+            }
+        ]
+
+        response = self.client.chat.completions.create(
+            model="OpenGVLab/InternVL3-38B-hf",
+            messages=messages,
+            max_tokens=128
+        )
+        content = response.choices[0].message.content
+        print(content)
+        return content

@@ -195,8 +195,6 @@ def main():
                     iou = evaluation['iou']
                     all_ious.append(iou)
                     save_result(RESULT_ROOT, evaluation, os.path.join(folder.name, image_name))
-    mean_iou = sum(all_ious) / len(all_ious)
-    print(mean_iou)
 
 if __name__ == "__main__":
     main()
