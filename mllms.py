@@ -18,7 +18,6 @@ class MLLM_LLAVA:
         return cls._instance
 
     def __init__(self):
-
         self.processor = LlavaProcessor.from_pretrained(
             "llava-hf/llava-1.5-13b-hf",
             trust_remote_code=True
@@ -93,7 +92,7 @@ class InternVL3:
             "<image>\n"
             'Detect all smoke and output bounding box like'
             '[[x1 y1 x2 y2], [x1 y1 x2 y2]]'
-            "If you cannot find any smoke return 'None'"
+            "If you cannot find any smoke return empty list []"
         )
 
         self.prompt2 = (
@@ -103,36 +102,45 @@ class InternVL3:
             '(from left to right, top to bottom). '
             'Please output the numbered regions that contain smoke in JSON format as '
             'a list of dicts like [{"region": 1}, {"region": 2}].'
+            "If you cannot find any smoke return empty list []"
         )
-        self.client = InferenceClient(
-            model="OpenGVLab/InternVL3-38B-hf",
-            token="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"  # ← 换成你自己的 token
+        self.processor = AutoProcessor.from_pretrained(
+            "/path/to/InternVL3-Chat-13B", trust_remote_code=True
+        )
+        self.model = AutoModelForCausalLM.from_pretrained(
+            "/path/to/InternVL3-Chat-13B",
+            torch_dtype=torch.float16,
+            device_map="auto",
+            trust_remote_code=True
         )
 
     def predict(self, image, is_grid=False):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
 
-        buffer = io.BytesIO()
-        image.save(buffer, format="JPEG")
-        b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        data_url = f"data:image/jpeg;base64,{b64}"
         prompt = self.prompt2 if is_grid else self.prompt1
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image_url", "image_url": {"url": data_url}},
-                    {"type": "text", "text": prompt}
-                ]
-            }
-        ]
+        inputs = self.processor(
+            text=prompt,
+            images=image,
+            return_tensors="pt"
+        ).to("cuda")
 
-        response = self.client.chat.completions.create(
-            model="OpenGVLab/InternVL3-38B-hf",
-            messages=messages,
-            max_tokens=128
+        input_ids = inputs["input_ids"]
+        prompt_len = input_ids.shape[1]
+
+        outputs = self.model.generate(
+            **inputs,
+            do_sample=False,
+            temperature=0.0,
+            max_new_tokens=1024,
+            return_dict_in_generate=True,
+            output_scores=True
         )
-        content = response.choices[0].message.content
-        print(content)
-        return content
+
+        generated_ids = outputs.sequences
+        answer = self.processor.tokenizer.decode(
+            generated_ids[0][prompt_len:],
+            skip_special_tokens=True
+        )
+        print(answer)
+        return answer
