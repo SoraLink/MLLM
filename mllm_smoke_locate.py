@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 import matplotlib
 from tqdm import tqdm
 
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 # openai.api_key = "sk-OUx2ZUIE43zd4ar198189277E53a4c52829eFbE46e863680"
 client = None
 # client = OpenAI(

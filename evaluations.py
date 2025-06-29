@@ -101,11 +101,11 @@ class InternVL3Evaluation:
         with open(annotation_path, 'r') as f:
             json_gt = json.load(f)
             boxes_gt = json_gt['det_boxes']
-            pred_boxes = torch.tensor(bboxes)
+            pred_boxes = torch.tensor(bboxes).view(-1, 4)
             gt_boxes = torch.tensor(boxes_gt)
-            ious = box_iou(pred_boxes, gt_boxes)
+            ious = box_iou(pred_boxes, gt_boxes).tolist()
             return {
-                'iou': ious.cpu().numpy(),
+                'iou': ious,
                 'response': prediction,
                 'img': image
             }
@@ -132,8 +132,12 @@ class InternVL3Evaluation:
         return numbers
 
     def _retireve_bbox(self, response_content):
-        data_list = json.loads(response_content)
-        bboxes = [tuple(item['bbox']) for item in data_list]
+        try:
+            data_list = json.loads(response_content)
+            bboxes = [tuple(item['bbox']) for item in data_list]
+        except Exception:
+            print(response_content)
+            bboses = []
         return bboxes
 
     def _save_result(self, path: str, evaluation_result: dict, image_path: str, mode: str):
@@ -141,6 +145,7 @@ class InternVL3Evaluation:
         path.mkdir(parents=True, exist_ok=True)
         img = evaluation_result.pop('img')
         json_path = path / 'results_{}.json'.format(mode)
+        print(evaluation_result)
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(evaluation_result, f)
         cv2.imwrite(str(path / 'img_{}.jpg'.format(mode)), img)
@@ -177,8 +182,8 @@ def area_evaluation():
             annotation_path = Path(path)
             image_name = annotation_path.name.replace('.json', '.jpg')
             image_path = os.path.join(DATA_ROOT, annotation_path.parent.name, image_name)
-            evaluation.evaluate(image_path, annotation_path, mode='grid', result_root=os.path.join(RESULT_ROOT, 'low'))
             evaluation.evaluate(image_path, annotation_path, mode='coordinate', result_root=os.path.join(RESULT_ROOT, 'low'))
+            evaluation.evaluate(image_path, annotation_path, mode='grid', result_root=os.path.join(RESULT_ROOT, 'low'))
 
         for path, _ in mid_group:
             annotation_path = Path(path)
