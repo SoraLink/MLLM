@@ -137,7 +137,7 @@ class InternVL3Evaluation:
             bboxes = [tuple(item['bbox']) for item in data_list]
         except Exception:
             print(response_content)
-            bboses = []
+            bboxes = []
         return bboxes
 
     def _save_result(self, path: str, evaluation_result: dict, image_path: str, mode: str):
