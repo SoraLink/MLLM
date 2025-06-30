@@ -86,6 +86,9 @@ class InternVL3Evaluation:
         self.model = InternVL3.get_instance()
 
     def evaluate(self, image_path, annotation_path, mode, result_root):
+        if self._has_result(result_root, image_path, mode):
+            print('Skip {} because it is already evaluated'.format(annotation_path))
+            return
         if mode == 'coordinate':
             result = self._evaluate_coordinate(image_path, annotation_path)
         elif mode == 'grid':
@@ -151,6 +154,13 @@ class InternVL3Evaluation:
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(evaluation_result, f)
         cv2.imwrite(str(path / 'img_{}.jpg'.format(mode)), img)
+
+    def _has_result(self, path: str, image_path: str, mode: str):
+        path = Path(os.path.join(path, image_path)).resolve()
+        json_path = path / 'results_{}.json'.format(mode)
+        if json_path.exists():
+            return True
+        return False
 
 ANNOTATION_ROOT = "./dataset/Annotation"
 DATA_ROOT = "./dataset/all_data"
