@@ -106,8 +106,8 @@ class InternVL3Evaluation:
             ious = box_iou(pred_boxes, gt_boxes).tolist()
             return {
                 'iou': ious,
-                'predict_boxes': pred_boxes,
-                'gt_boxes': gt_boxes,
+                'predict_boxes': pred_boxes.tolist(),
+                'gt_boxes': gt_boxes.tolist(),
                 'response': prediction,
                 'img': image
             }
