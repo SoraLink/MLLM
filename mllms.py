@@ -94,14 +94,12 @@ class InternVL3:
 
     def __init__(self):
         self.prompt1 = (
-            "<image>\n"
             'Detect all smoke and output bounding box like'
             '[[x1 y1 x2 y2], [x1 y1 x2 y2]]'
             "If you cannot find any smoke return empty list [] without other words"
         )
 
         self.prompt2 = (
-            "<image>\n"
             "what is in the image"
             'Please look at this image, which is divided into several numbered regions '
             '(from left to right, top to bottom). '
