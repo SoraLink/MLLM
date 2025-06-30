@@ -109,36 +109,10 @@ class InternVL3:
             'a list of dicts like [{"region": 1}, {"region": 2}].'
             "If you cannot find any smoke return empty list [] without other words"
         )
-        #from transformers import pipeline, AutoProcessor, AutoModel, AutoTokenizer
-        #import torch
-
-        # 1. 先加载 processor 和模型
-       # tokenizer = AutoTokenizer.from_pretrained("/d1/sunyu/sora/MLLM/InternVL3-38B-hf", trust_remote_code=True)
-       # processor = AutoProcessor.from_pretrained(
-       #             "/d1/sunyu/sora/MLLM/InternVL3-38B-hf", trust_remote_code=True
-       #             )
-       # model = AutoModel.from_pretrained(
-       #         "/d1/sunyu/sora/MLLM/InternVL3-38B-hf",
-       #         torch_dtype=torch.float16,
-       #         device_map="balanced"
-       #         )
-
-        # 2. 子类化原 pipeline
-        #BaseClass = type(pipeline("image-text-to-text"))
-        #class MyImageTextToText(BaseClass):
-#            def preprocess(self, inputs):
-#                data = super().preprocess(inputs)
-                                    # 强制把图像 tensor 转成 float16
-#               if "pixel_values" in data:
-#                    data["pixel_values"] = data["pixel_values"].to(torch.float16)
-#                return data
-
-                                                                # 3. 用你的子类去实例化 pipeline
-        #self.pipe = MyImageTextToText(model=model, tokenizer=tokenizer, feature_extractor=processor, device="cuda")
         self.pipe = pipeline(
             "image-text-to-text",
-            model="/d1/sunyu/sora/MLLM/InternVL3-78B-hf",  # 或者 "OpenGVLab/InternVL3-14B"、"OpenGVLab/InternVL3-2B" 等
-            device_map="auto",               # 自动分配到你可见的 GPU
+            model="/d1/sunyu/sora/MLLM/InternVL3-78B-hf",
+            device_map="auto",
             trust_remote_code=True,
             torch_dtype=torch.float32
         )
@@ -146,20 +120,7 @@ class InternVL3:
     def predict(self, image, is_grid=False):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
-        #out = self.processor.image_processor(images=image, return_tensors="pt")
-        #print("DEBUG dtype before patch:", out["pixel_values"].dtype)
-        #image = image.resize((448, 448), Image.BILINEAR)
-        #print("\n===== DEBUG: Image Info =====")
-        #print(f"is_grid = {is_grid}")
-        #print(f"Image type: {type(image)}")  # 应该是 <class 'PIL.Image.Image'>
-        #print(f"Image mode: {image.mode}")   # 应该是 'RGB'
-        #print(f"Image size: {image.size}")   # 应该是 (width, height)，如 (1024, 1024)
-        #print("==========================\n")
         prompt = self.prompt2 if is_grid else self.prompt1
-        #print(prompt)
-        #print(prompt.count("<image>"))
-        #print(self.processor.image_placeholder)  # 检查占位符是否是 `<image>`
-        #print(self.processor.num_images)        # 检查默认期望的图像数量
         messages = [
             {
                 "role": "user",
@@ -169,7 +130,8 @@ class InternVL3:
                 ]
             }
         ]
-        res = self.pipe(text=messages, return_full_text=False)
+        res = self.pipe(messages, return_full_text=False)
         answer = res[0]["generated_text"]
-        print("response： ", answer)
+        print("prompt: ", prompt)
+        print("response: ", answer)
         return answer

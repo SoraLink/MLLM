@@ -83,7 +83,7 @@ class LlavaEvaluation:
 class InternVL3Evaluation:
 
     def __init__(self):
-        self.llava_model = InternVL3.get_instance()
+        self.model = InternVL3.get_instance()
 
     def evaluate(self, image_path, annotation_path, mode, result_root):
         if mode == 'coordinate':
@@ -96,7 +96,7 @@ class InternVL3Evaluation:
 
     def _evaluate_coordinate(self, image_path, annotation_path):
         image = cv2.imread(image_path)
-        prediction = self.llava_model.predict(image)
+        prediction = self.model.predict(image)
         bboxes = self._retireve_bbox(prediction)
         with open(annotation_path, 'r') as f:
             json_gt = json.load(f)
@@ -106,6 +106,8 @@ class InternVL3Evaluation:
             ious = box_iou(pred_boxes, gt_boxes).tolist()
             return {
                 'iou': ious,
+                'predict_boxes': pred_boxes,
+                'gt_boxes': gt_boxes,
                 'response': prediction,
                 'img': image
             }
@@ -114,7 +116,7 @@ class InternVL3Evaluation:
         img_rgb = ImagePreprocess.add_grid(image_path)
         annotation_grids = get_annotation_grid_number(annotation_path, img_rgb)
 
-        content = self.llava_model.predict(img_rgb, is_grid=True)
+        content = self.model.predict(img_rgb, is_grid=True)
         predict_grids = self._retrieve_grid_number(content)
         iou = compute_grid_IoU(set(predict_grids), set(annotation_grids))
         img_with_box = add_bbox(annotation_path, img_rgb)
@@ -177,25 +179,28 @@ def area_evaluation():
         lower_group = json_data['lower']
         mid_group = json_data['mide']
         upper_group = json_data['upper']
-
+        print('testing low group')
         for path, _ in lower_group:
             annotation_path = Path(path)
             image_name = annotation_path.name.replace('.json', '.jpg')
             image_path = os.path.join(DATA_ROOT, annotation_path.parent.name, image_name)
+            print('testing', image_path)
             evaluation.evaluate(image_path, annotation_path, mode='coordinate', result_root=os.path.join(RESULT_ROOT, 'low'))
             evaluation.evaluate(image_path, annotation_path, mode='grid', result_root=os.path.join(RESULT_ROOT, 'low'))
-
+        print('testing mid group')
         for path, _ in mid_group:
             annotation_path = Path(path)
             image_name = annotation_path.name.replace('.json', '.jpg')
             image_path = os.path.join(DATA_ROOT, annotation_path.parent.name, image_name)
+            print('testing', image_path)
             evaluation.evaluate(image_path, annotation_path, mode='grid', result_root=os.path.join(RESULT_ROOT, 'mid'))
             evaluation.evaluate(image_path, annotation_path, mode='coordinate', result_root=os.path.join(RESULT_ROOT, 'mid'))
-
+        print('testing up group')
         for path, _ in upper_group:
             annotation_path = Path(path)
             image_name = annotation_path.name.replace('.json', '.jpg')
             image_path = os.path.join(DATA_ROOT, annotation_path.parent.name, image_name)
+            print('testing', image_path)
             evaluation.evaluate(image_path, annotation_path, mode='grid', result_root=os.path.join(RESULT_ROOT, 'up'))
             evaluation.evaluate(image_path, annotation_path, mode='coordinate', result_root=os.path.join(RESULT_ROOT, 'up'))
 
@@ -206,29 +211,32 @@ def contrast_evaluation():
         lower_group = json_data['lower']
         mid_group = json_data['mide']
         upper_group = json_data['upper']
-
+        print('testing low group')
         for path, _ in lower_group:
             annotation_path = Path(path)
             image_name = annotation_path.name.replace('.json', '.jpg')
             image_path = os.path.join(DATA_ROOT, annotation_path.parent.name, image_name)
+            print('testing', image_path)
             evaluation.evaluate(image_path, annotation_path, mode='grid',
                                 result_root=os.path.join(RESULT_ROOT, 'low'))
             evaluation.evaluate(image_path, annotation_path, mode='coordinate',
                                 result_root=os.path.join(RESULT_ROOT, 'low'))
-
+        print('testing mid group')
         for path, _ in mid_group:
             annotation_path = Path(path)
             image_name = annotation_path.name.replace('.json', '.jpg')
             image_path = os.path.join(DATA_ROOT, annotation_path.parent.name, image_name)
+            print('testing', image_path)
             evaluation.evaluate(image_path, annotation_path, mode='grid',
                                 result_root=os.path.join(RESULT_ROOT, 'mid'))
             evaluation.evaluate(image_path, annotation_path, mode='coordinate',
                                 result_root=os.path.join(RESULT_ROOT, 'mid'))
-
+        print('testing up group')
         for path, _ in upper_group:
             annotation_path = Path(path)
             image_name = annotation_path.name.replace('.json', '.jpg')
             image_path = os.path.join(DATA_ROOT, annotation_path.parent.name, image_name)
+            print('testing', image_path)
             evaluation.evaluate(image_path, annotation_path, mode='grid',
                                 result_root=os.path.join(RESULT_ROOT, 'up'))
             evaluation.evaluate(image_path, annotation_path, mode='coordinate',
