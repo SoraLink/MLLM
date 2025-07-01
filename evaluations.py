@@ -269,5 +269,5 @@ def contrast_evaluation(evaluation):
 
 
 if __name__ == "__main__":
-    evaluation = UIO2Evaluation
+    evaluation = UIO2Evaluation()
     area_evaluation(evaluation)
