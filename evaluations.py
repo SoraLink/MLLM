@@ -10,10 +10,12 @@ from torchvision.ops import box_iou
 from tqdm import tqdm
 
 from mllm_smoke_locate import ImagePreprocess, get_annotation_grid_number, compute_grid_IoU, add_bbox
-from mllms import MLLM_LLAVA, InternVL3
+from mllms import MLLM_LLAVA, InternVL3, UIO2
 
 import os
+
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 
 class LlavaEvaluation:
 
@@ -102,7 +104,6 @@ class InternVL3Evaluation:
         image = cv2.imread(image_path)
         prediction = self.model.predict(image)
         prediction = ast.literal_eval(prediction)
-        # bboxes = self._retireve_bbox(prediction)
         with open(annotation_path, 'r') as f:
             json_gt = json.load(f)
             boxes_gt = json_gt['det_boxes']
@@ -164,9 +165,18 @@ class InternVL3Evaluation:
             return True
         return False
 
+
+class UIO2Evaluation(InternVL3Evaluation):
+
+    def __init__(self):
+        super().__init__()
+        self.model = UIO2.get_instance()
+
+
 ANNOTATION_ROOT = "./dataset/Annotation"
 DATA_ROOT = "./dataset/all_data"
 RESULT_ROOT = "./results"
+
 
 def main():
     root_dir = Path(ANNOTATION_ROOT)
@@ -184,8 +194,8 @@ def main():
     mean_iou = sum(all_ious) / len(all_ious)
     print(mean_iou)
 
-def area_evaluation():
-    evaluation = InternVL3Evaluation()
+
+def area_evaluation(evaluation):
     with open(os.path.join('./dataset/area.json')) as f:
         json_data = json.load(f)
         lower_group = json_data['lower']
@@ -197,7 +207,8 @@ def area_evaluation():
             image_name = annotation_path.name.replace('.json', '.jpg')
             image_path = os.path.join(DATA_ROOT, annotation_path.parent.name, image_name)
             print('testing', image_path)
-            evaluation.evaluate(image_path, annotation_path, mode='coordinate', result_root=os.path.join(RESULT_ROOT, 'low'))
+            evaluation.evaluate(image_path, annotation_path, mode='coordinate',
+                                result_root=os.path.join(RESULT_ROOT, 'low'))
             evaluation.evaluate(image_path, annotation_path, mode='grid', result_root=os.path.join(RESULT_ROOT, 'low'))
         print('testing mid group')
         for path, _ in mid_group:
@@ -206,7 +217,8 @@ def area_evaluation():
             image_path = os.path.join(DATA_ROOT, annotation_path.parent.name, image_name)
             print('testing', image_path)
             evaluation.evaluate(image_path, annotation_path, mode='grid', result_root=os.path.join(RESULT_ROOT, 'mid'))
-            evaluation.evaluate(image_path, annotation_path, mode='coordinate', result_root=os.path.join(RESULT_ROOT, 'mid'))
+            evaluation.evaluate(image_path, annotation_path, mode='coordinate',
+                                result_root=os.path.join(RESULT_ROOT, 'mid'))
         print('testing up group')
         for path, _ in upper_group:
             annotation_path = Path(path)
@@ -214,10 +226,11 @@ def area_evaluation():
             image_path = os.path.join(DATA_ROOT, annotation_path.parent.name, image_name)
             print('testing', image_path)
             evaluation.evaluate(image_path, annotation_path, mode='grid', result_root=os.path.join(RESULT_ROOT, 'up'))
-            evaluation.evaluate(image_path, annotation_path, mode='coordinate', result_root=os.path.join(RESULT_ROOT, 'up'))
+            evaluation.evaluate(image_path, annotation_path, mode='coordinate',
+                                result_root=os.path.join(RESULT_ROOT, 'up'))
 
-def contrast_evaluation():
-    evaluation = InternVL3Evaluation()
+
+def contrast_evaluation(evaluation):
     with open(os.path.join('./dataset/contrast.json')) as f:
         json_data = json.load(f)
         lower_group = json_data['lower']
@@ -255,6 +268,6 @@ def contrast_evaluation():
                                 result_root=os.path.join(RESULT_ROOT, 'up'))
 
 
-
 if __name__ == "__main__":
-    contrast_evaluation()
+    evaluation = UIO2Evaluation
+    area_evaluation(evaluation)

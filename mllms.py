@@ -5,7 +5,8 @@ import cv2
 import torch
 from PIL import Image
 from huggingface_hub import InferenceClient
-from transformers import AutoProcessor, AutoModel, LlavaProcessor, LlavaForConditionalGeneration, pipeline
+from transformers import AutoProcessor, AutoModel, LlavaProcessor, LlavaForConditionalGeneration, pipeline, \
+    AutoModelForCausalLM
 
 
 class MLLM_LLAVA:
@@ -48,12 +49,6 @@ class MLLM_LLAVA:
     def predict(self, image, is_grid=False):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
-        print("\n===== DEBUG: Image Info =====")
-        print(f"is_grid = {is_grid}")
-        print(f"Image type: {type(image)}")  # 应该是 <class 'PIL.Image.Image'>
-        print(f"Image mode: {image.mode}")   # 应该是 'RGB'
-        print(f"Image size: {image.size}")   # 应该是 (width, height)，如 (1024, 1024)
-        print("==========================\n")
         prompt = self.prompt2 if is_grid else self.prompt1
         inputs = self.processor(
             images=[image],
@@ -130,6 +125,49 @@ class InternVL3:
         ]
         res = self.pipe(messages, return_full_text=False)
         answer = res[0]["generated_text"]
+        print("prompt: ", prompt)
+        print("response: ", answer)
+        return answer
+
+
+class UIO2:
+    _instance = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def __init__(self):
+        self.processor = AutoProcessor.from_pretrained("allenai/uio2-large", trust_remote_code=True)
+        self.model = AutoModelForCausalLM.from_pretrained("allenai/uio2-large", trust_remote_code=True)
+        self.prompt1 = (
+            "<image>\n"
+            "Please detect all smoke in the image and return a JSON list of bounding boxes "
+            "in the format [[x1, y1, x2, y2], [x1, y1, x2, y2], …]. "
+            "If no smoke is found, simply return [] without any extra text."
+        )
+
+        self.prompt2 = (
+            "<image>\n"
+            "what is in the image"
+            'Please look at this image, which is divided into several numbered regions '
+            '(from left to right, top to bottom). '
+            'Please output the numbered regions that contain smoke in JSON format as '
+            'a list of dicts like [{"region": 1}, {"region": 2}].'
+            "If you cannot find any smoke return empty list [] without other words"
+        )
+
+    def predict(self, image, is_grid=False):
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = Image.fromarray(image)
+        prompt = self.prompt2 if is_grid else self.prompt1
+        inputs = self.processor(images=image, text=prompt, return_tensors="pt").to("cuda")
+        prompt_length = inputs["input_ids"].shape[1]
+        outputs = self.model.generate(**inputs)
+        gen_ids = outputs[0][prompt_length:]
+        answer = self.processor.decode(gen_ids, skip_special_tokens=True)
         print("prompt: ", prompt)
         print("response: ", answer)
         return answer
