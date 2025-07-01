@@ -1,3 +1,4 @@
+import ast
 import json
 import os
 import re
@@ -100,6 +101,7 @@ class InternVL3Evaluation:
     def _evaluate_coordinate(self, image_path, annotation_path):
         image = cv2.imread(image_path)
         prediction = self.model.predict(image)
+        prediction = ast.literal_eval(prediction)
         # bboxes = self._retireve_bbox(prediction)
         with open(annotation_path, 'r') as f:
             json_gt = json.load(f)
