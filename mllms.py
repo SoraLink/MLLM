@@ -95,7 +95,7 @@ class InternVL3:
     def __init__(self):
         self.prompt1 = (
             'Detect all smoke and output bounding box like'
-            '[[x1 y1 x2 y2], [x1 y1 x2 y2]]'
+            '[[x1, y1, x2, y2], [x1, y1, x2, y2]]'
             "If you cannot find any smoke return empty list [] without other words"
         )
 
