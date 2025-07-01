@@ -255,4 +255,4 @@ def contrast_evaluation():
 
 
 if __name__ == "__main__":
-    area_evaluation()
+    contrast_evaluation()
