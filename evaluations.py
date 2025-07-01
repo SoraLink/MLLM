@@ -169,7 +169,6 @@ class InternVL3Evaluation:
 class UIO2Evaluation(InternVL3Evaluation):
 
     def __init__(self):
-        super().__init__()
         self.model = UIO2.get_instance()
 
 
