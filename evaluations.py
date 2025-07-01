@@ -100,11 +100,11 @@ class InternVL3Evaluation:
     def _evaluate_coordinate(self, image_path, annotation_path):
         image = cv2.imread(image_path)
         prediction = self.model.predict(image)
-        bboxes = self._retireve_bbox(prediction)
+        # bboxes = self._retireve_bbox(prediction)
         with open(annotation_path, 'r') as f:
             json_gt = json.load(f)
             boxes_gt = json_gt['det_boxes']
-            pred_boxes = torch.tensor(bboxes).view(-1, 4)
+            pred_boxes = torch.tensor(prediction).view(-1, 4)
             gt_boxes = torch.tensor(boxes_gt)
             ious = box_iou(pred_boxes, gt_boxes).tolist()
             return {
