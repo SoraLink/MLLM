@@ -8,6 +8,8 @@ from huggingface_hub import InferenceClient
 from transformers import AutoProcessor, AutoModel, LlavaProcessor, LlavaForConditionalGeneration, pipeline, \
     AutoModelForCausalLM
 
+from uio2_inference import run_inference
+
 
 class MLLM_LLAVA:
     _instance = None
@@ -140,17 +142,11 @@ class UIO2:
         return cls._instance
 
     def __init__(self):
-        self.processor = AutoProcessor.from_pretrained("allenai/uio2-large", trust_remote_code=True)
-        self.model = AutoModelForCausalLM.from_pretrained("allenai/uio2-large", trust_remote_code=True)
         self.prompt1 = (
-            "<image>\n"
-            "Please detect all smoke in the image and return a JSON list of bounding boxes "
-            "in the format [[x1, y1, x2, y2], [x1, y1, x2, y2], …]. "
-            "If no smoke is found, simply return [] without any extra text."
+            "Please detect all smoke in the image and return a JSON list of bounding boxes."
         )
 
         self.prompt2 = (
-            "<image>\n"
             "what is in the image"
             'Please look at this image, which is divided into several numbered regions '
             '(from left to right, top to bottom). '
@@ -163,11 +159,23 @@ class UIO2:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
         prompt = self.prompt2 if is_grid else self.prompt1
-        inputs = self.processor(images=image, text=prompt, return_tensors="pt").to("cuda")
-        prompt_length = inputs["input_ids"].shape[1]
-        outputs = self.model.generate(**inputs)
-        gen_ids = outputs[0][prompt_length:]
-        answer = self.processor.decode(gen_ids, skip_special_tokens=True)
+        answer = run_inference(
+            output_modality='text',
+            random_seed="",
+            top_k=40,
+            top_p=0.9,
+            temperature=0.,
+            guidance_scale=0,
+            repetition_penalty=0,
+            n_outputs=1,
+            negative_prompt=None,
+            input_decoding="Beam",
+            bbox_annotate_image=False if is_grid else True,
+            input_text=prompt,
+            input_image=image,
+            input_video=None,
+            input_audio=None
+        )
         print("prompt: ", prompt)
         print("response: ", answer)
         return answer
