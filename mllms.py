@@ -8,7 +8,11 @@ from huggingface_hub import InferenceClient
 from transformers import AutoProcessor, AutoModel, LlavaProcessor, LlavaForConditionalGeneration, pipeline, \
     AutoModelForCausalLM
 
-from uio2_inference import run_inference
+from uio2.model import UnifiedIOModel
+from uio2.preprocessing import UnifiedIOPreprocessor
+from uio2.preprocessing import build_batch
+from uio2.prompt import Prompt
+from uio2.runner import TaskRunner
 
 
 class MLLM_LLAVA:
@@ -142,40 +146,45 @@ class UIO2:
         return cls._instance
 
     def __init__(self):
+        self.preprocessor = UnifiedIOPreprocessor.from_pretrained(
+            "allenai/uio2-xxl",
+            tokenizer="/path/to/tokenizer",
+            trust_remote_code=True
+        )
+        self.model = UnifiedIOModel.from_pretrained(
+            "allenai/uio2-xxl",
+            torch_dtype=torch.float32,
+            device_map="sequential",
+            trust_remote_code=True
+        )
+        prompts = Prompt(
+            original_flag=False,
+            manual_flag=True,
+            gpt3_flag=False,
+            single_prompt=True)
+        self.runner = TaskRunner(self.model, self.preprocessor, prompts=prompts)
         self.prompt1 = (
-            "Please detect all smoke in the image and return a JSON list of bounding boxes."
+            "smoke"
         )
 
         self.prompt2 = (
+            "<image>\n"
             "what is in the image"
-            'Please look at this image, which is divided into several numbered regions '
+            'Please look at this image, which is divided into 24 numbered regions '
             '(from left to right, top to bottom). '
             'Please output the numbered regions that contain smoke in JSON format as '
             'a list of dicts like [{"region": 1}, {"region": 2}].'
-            "If you cannot find any smoke return empty list [] without other words"
+            # "请你只用一句话描述图片中是否有烟雾。如果有，出现在哪些编号区域？不要输出其他内容。"
         )
 
     def predict(self, image, is_grid=False):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
-        prompt = self.prompt2 if is_grid else self.prompt1
-        answer = run_inference(
-            output_modality='text',
-            random_seed="",
-            top_k=40,
-            top_p=0.9,
-            temperature=0.,
-            guidance_scale=0,
-            repetition_penalty=0,
-            n_outputs=1,
-            negative_prompt=None,
-            input_decoding="Beam",
-            bbox_annotate_image=False if is_grid else True,
-            input_text=prompt,
-            input_image=image,
-            input_video=None,
-            input_audio=None
-        )
-        print("prompt: ", prompt)
-        print("response: ", answer)
+        if is_grid:
+            answer = self.runner.vqa(image, self.prompt2)
+        else:
+            answer = self.runner.refexp(image, self.prompt1)
+
+        print(answer)
+
         return answer
