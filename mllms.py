@@ -147,15 +147,15 @@ class UIO2:
 
     def __init__(self):
         self.preprocessor = UnifiedIOPreprocessor.from_pretrained(
-            "allenai/uio2-xxl",
-            tokenizer="/path/to/tokenizer",
-            trust_remote_code=True
+            "allenai/uio2-preprocessor",
+            tokenizer="/d1/sunyu/sora/unified-io-2.pytorch/checkpoints/tokenizer.model",
+            #trust_remote_code=True
         )
         self.model = UnifiedIOModel.from_pretrained(
             "allenai/uio2-xxl",
-            torch_dtype=torch.float32,
-            device_map="sequential",
-            trust_remote_code=True
+            #torch_dtype=torch.float32,
+            #device_map="sequential",
+            #trust_remote_code=True
         )
         prompts = Prompt(
             original_flag=False,
@@ -187,4 +187,4 @@ class UIO2:
 
         print(answer)
 
-        return answer
+        return str([answer])
