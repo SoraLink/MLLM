@@ -110,7 +110,7 @@ class InternVL3:
         )
         self.pipe = pipeline(
             "image-text-to-text",
-            model="/d1/sunyu/sora/MLLM/InternVL3-78B-hf",
+            model="/d1/sunyu/sora/MLLM/InternVL3-38B-hf",
             device_map="balanced",
             trust_remote_code=True,
             torch_dtype=torch.float32
