@@ -44,7 +44,6 @@ class MLLM_LLAVA:
 
         self.prompt2 = (
             "<image>\n"
-            "what is in the image"
             'Please look at this image, which is divided into 24 numbered regions '
             '(from left to right, top to bottom). '
             'Please output the numbered regions that contain smoke in JSON format as '
@@ -101,7 +100,6 @@ class InternVL3:
         )
 
         self.prompt2 = (
-            "what is in the image"
             'Please look at this image, which is divided into several numbered regions '
             '(from left to right, top to bottom). '
             'Please output the numbered regions that contain smoke in JSON format as '
@@ -110,7 +108,7 @@ class InternVL3:
         )
         self.pipe = pipeline(
             "image-text-to-text",
-            model="OpenGVLab/InternVL3-38B-hf",
+            model="OpenGVLab/InternVL3-14B-hf",
             device_map="balanced",
             trust_remote_code=True,
             torch_dtype=torch.float32
@@ -169,12 +167,10 @@ class UIO2:
 
         self.prompt2 = (
             "<image>\n"
-            "what is in the image"
             'Please look at this image, which is divided into 24 numbered regions '
             '(from left to right, top to bottom). '
             'Please output the numbered regions that contain smoke in JSON format as '
             'a list of dicts like [{"region": 1}, {"region": 2}].'
-            # "请你只用一句话描述图片中是否有烟雾。如果有，出现在哪些编号区域？不要输出其他内容。"
         )
 
     def predict(self, image, is_grid=False):
