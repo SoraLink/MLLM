@@ -106,9 +106,39 @@ class ImagePreprocess:
                 text_y = cy - text_size[1] // 2
                 cv2.putText(img, label, (text_x, text_y), font, font_scale, color, thickness)
                 region_id += 1
-        # img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         return img
 
+    @staticmethod
+    def add_grid_to_patch(img, patch_box, rows=5, cols=5):
+        w = abs(patch_box[2] - patch_box[0])
+        h = abs(patch_box[3] - patch_box[1])
+
+        cell_h = h // rows
+        cell_w = w // cols
+
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = min(cell_w, cell_h) / 50.0
+        thickness = 1
+        color = (0, 0, 255)
+
+        region_id = 1
+        for i in range(rows):
+            for j in range(cols):
+                x1, y1 = j * cell_w + patch_box[0], i * cell_h + patch_box[1]
+                x2, y2 = (j + 1) * cell_w + patch_box[0], (i + 1) * cell_h + patch_box[1]
+
+                cv2.rectangle(img, (x1, y1), (x2, y2), (255, 255, 255), 1)
+
+                cx = x1 + cell_w // 2
+                cy = y1 + cell_h // 2
+
+                label = str(region_id)
+                text_size = cv2.getTextSize(label, font, font_scale, thickness)[0]
+                text_x = cx - text_size[0] // 2
+                text_y = cy - text_size[1] // 2
+                cv2.putText(img, label, (text_x, text_y), font, font_scale, color, thickness)
+                region_id += 1
+        return img[patch_box[1], patch_box[3], patch_box[0]:patch_box[2]]
 
 def get_annotation_grid_number(annotation_path, img, rows=5, cols=5):
     h, w, _ = img.shape
