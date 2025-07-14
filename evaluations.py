@@ -92,7 +92,7 @@ class Evaluator:
     def _region_ids_to_box(self, region_ids, patch_box, rows=5, cols=5):
         x1, y1, x2, y2 = patch_box
         cell_w = (x2 - x1) // cols
-        cell_h = y2 - y1 // rows
+        cell_h = (y2 - y1) // rows
 
         boxes = []
         for rid in region_ids:
@@ -149,8 +149,7 @@ class Evaluator:
 
     def _retireve_bbox(self, response_content):
         try:
-            data_list = json.loads(response_content)
-            bboxes = [tuple(item['bbox']) for item in data_list]
+            bboxes = json.loads(response_content)
         except Exception:
             print(response_content)
             bboxes = []
@@ -173,7 +172,7 @@ class Evaluator:
 
     def _has_result(self, path: str, image_path: str, mode: str):
         image_path = Path(image_path)
-        path = Path(os.path.join(path, image_path.name)).resolve()
+        path = Path(os.path.join(path, image_path.parent.name, image_path.name)).resolve()
         json_path = path / 'results_{}.json'.format(mode)
         if json_path.exists():
             return True
