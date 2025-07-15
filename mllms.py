@@ -14,7 +14,6 @@ from uio2.preprocessing import build_batch
 from uio2.prompt import Prompt
 from uio2.runner import TaskRunner
 
-
 class MLLM_LLAVA:
     _instance = None
 
@@ -35,26 +34,11 @@ class MLLM_LLAVA:
             device_map="sequential",
             trust_remote_code=True
         )
-        self.prompt1 = (
-            "<image>\n"
-            'Detect all smoke and output bounding box like'
-            '[[x1 y1 x2 y2], [x1 y1 x2 y2]]'
-            "If you cannot find any smoke return 'None'"
-        )
 
-        self.prompt2 = (
-            "<image>\n"
-            'Please look at this image, which is divided into 24 numbered regions '
-            '(from left to right, top to bottom). '
-            'Please output the numbered regions that contain smoke in JSON format as '
-            'a list of dicts like [{"region": 1}, {"region": 2}].'
-            # "请你只用一句话描述图片中是否有烟雾。如果有，出现在哪些编号区域？不要输出其他内容。"
-        )
-
-    def predict(self, image, is_grid=False):
+    def predict(self, image, prompt):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
-        prompt = self.prompt2 if is_grid else self.prompt1
+        prompt = '<image>\n' + prompt
         inputs = self.processor(
             images=[image],
             text=[prompt],
@@ -73,10 +57,11 @@ class MLLM_LLAVA:
             output_scores=True
         )
 
-        generated_ids = outputs.sequences
+        generated_ids = outputs.sequences[0]
+        new_ids = generated_ids[prompt_len:]
 
         answer = self.processor.tokenizer.decode(
-            generated_ids[0],
+            new_ids,
             skip_special_tokens=True
         )
 
@@ -93,19 +78,6 @@ class InternVL3:
         return cls._instance
 
     def __init__(self):
-        self.prompt1 = (
-            'Detect all smoke and output bounding box like'
-            '[[x1, y1, x2, y2], [x1, y1, x2, y2]]'
-            "If you cannot find any smoke return empty list [] without other words"
-        )
-
-        self.prompt2 = (
-            'Please look at this image, which is divided into several numbered regions '
-            '(from left to right, top to bottom). '
-            'Please output the numbered regions that contain smoke in JSON format as '
-            'a list of dicts like [{"region": 1}, {"region": 2}].'
-            "If you cannot find any smoke return empty list [] without other words"
-        )
         self.pipe = pipeline(
             "image-text-to-text",
             model="OpenGVLab/InternVL3-14B-hf",
@@ -114,10 +86,9 @@ class InternVL3:
             torch_dtype=torch.float32
         )
 
-    def predict(self, image, is_grid=False):
+    def predict(self, image, prompt):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
-        prompt = self.prompt2 if is_grid else self.prompt1
         messages = [
             {
                 "role": "user",
@@ -147,13 +118,9 @@ class UIO2:
         self.preprocessor = UnifiedIOPreprocessor.from_pretrained(
             "allenai/uio2-preprocessor",
             tokenizer="/d1/sunyu/sora/unified-io-2.pytorch/checkpoints/tokenizer.model",
-            #trust_remote_code=True
         )
         self.model = UnifiedIOModel.from_pretrained(
             "allenai/uio2-xxl",
-            #torch_dtype=torch.float32,
-            #device_map="sequential",
-            #trust_remote_code=True
         )
         prompts = Prompt(
             original_flag=False,
@@ -161,25 +128,11 @@ class UIO2:
             gpt3_flag=False,
             single_prompt=True)
         self.runner = TaskRunner(self.model, self.preprocessor, prompts=prompts)
-        self.prompt1 = (
-            "smoke"
-        )
 
-        self.prompt2 = (
-            "<image>\n"
-            'Please look at this image, which is divided into 24 numbered regions '
-            '(from left to right, top to bottom). '
-            'Please output the numbered regions that contain smoke in JSON format as '
-            'a list of dicts like [{"region": 1}, {"region": 2}].'
-        )
-
-    def predict(self, image, is_grid=False):
+    def predict(self, image, prompt):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
-        if is_grid:
-            answer = self.runner.vqa(image, self.prompt2)
-        else:
-            answer = self.runner.refexp(image, self.prompt1)
+        answer = self.runner.refexp(image, prompt)
 
         print(answer)
 

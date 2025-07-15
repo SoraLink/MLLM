@@ -20,6 +20,26 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 class Evaluator:
 
+    def __init__(self):
+        self.prompt_bbox = (
+            'Detect all smoke and output bounding box like'
+            '[[x1, y1, x2, y2], [x1, y1, x2, y2]] '
+            "If you cannot find any smoke return empty list [] without other words"
+        )
+
+        self.prompt_grid = (
+            'Please look at this image, which is divided into several numbered regions '
+            '(from left to right, top to bottom). '
+            'Please output the numbered regions that contain smoke in JSON format as '
+            'a list of dicts like [{"region": 1}, {"region": 2}]. '
+            "If you cannot find any smoke return empty list [] without other words"
+        )
+
+        self.prompt_classification = (
+            'Please look at this image. Detect if the image contains smoke. '
+            'If you can find any smoke, return True. Otherwise, return False.'
+        )
+
     def evaluate(self, image_path, annotation_path, mode, result_root):
         if self._has_result(result_root, image_path, mode):
             print('Skip {} because it is already evaluated'.format(annotation_path))
@@ -30,13 +50,28 @@ class Evaluator:
             result = self._evaluate_grid(image_path, annotation_path)
         elif mode == 'coordinate_by_grid':
             result = self._evaluate_coordinate_by_grid(image_path, annotation_path)
+        elif mode == 'classification':
+            result = self._evaluate_classification(image_path)
         else:
             raise ValueError('No such mode: {}'.format(mode))
         self._save_result(result_root, result, image_path, mode)
 
+    def _evaluate_classification(self, image_path):
+        image = cv2.imread(image_path)
+        response = self.model.predict(image, self.prompt_classification)
+        prediction = True if 'True' in response else False
+        image_name = Path(image_path).name
+        label = image_name.split('_')[1][0] == '+'
+        return {
+            'prediction': prediction,
+            'response': response,
+            'image_name': image_name,
+            'label': label
+        }
+
     def _evaluate_coordinate(self, image_path, annotation_path):
         image = cv2.imread(image_path)
-        prediction = self.model.predict(image)
+        prediction = self.model.predict(image, self.prompt_bbox)
         bboxes = self._retireve_bbox(prediction)
         with open(annotation_path, 'r') as f:
             json_gt = json.load(f)
@@ -74,7 +109,7 @@ class Evaluator:
             height, width = image.shape[:2]
             patch_box = (0, 0, width, height)
         cut_img = ImagePreprocess.add_grid_to_patch(image, patch_box)
-        content = self.model.predict(cut_img, is_grid=True)
+        content = self.model.predict(cut_img, self.prompt_grid)
         predict_grids = self._retrieve_grid_number(content)
         pred_box = self._region_ids_to_box(predict_grids, patch_box)
         ious = box_iou(torch.tensor([pred_box]), torch.tensor([gt_box]))
@@ -132,7 +167,7 @@ class Evaluator:
         img_rgb = ImagePreprocess.add_grid(image_path)
         annotation_grids = get_annotation_grid_number(annotation_path, img_rgb)
 
-        content = self.model.predict(img_rgb, is_grid=True)
+        content = self.model.predict(img_rgb, self.prompt_grid)
         predict_grids = self._retrieve_grid_number(content)
         iou = compute_grid_IoU(set(predict_grids), set(annotation_grids))
         img_with_box = add_bbox(annotation_path, img_rgb)
@@ -187,18 +222,24 @@ class Evaluator:
 class LlavaEvaluation(Evaluator):
 
     def __init__(self):
+        super().__init__()
         self.model = MLLM_LLAVA.get_instance()
 
 
 class InternVL3Evaluation(Evaluator):
 
     def __init__(self):
+        super().__init__()
         self.model = InternVL3.get_instance()
 
 
 class UIO2Evaluation(Evaluator):
 
     def __init__(self):
+        super().__init__()
+        self.prompt_bbox = (
+            "smoke"
+        )
         self.model = UIO2.get_instance()
 
 def build_evaluation(model):
@@ -211,30 +252,37 @@ def build_evaluation(model):
     else:
         raise NotImplementedError
 
-def evaluate(annotation_path, dataset_path, result_path, model, evaluation_type):
-    root_dir = Path(annotation_path)
-    evaluation = build_evaluation(model)
-    for folder in tqdm(root_dir.iterdir()):
-        if folder.is_dir():
-            for label in folder.iterdir():
-                if label.name.endswith('.json'):
-                    image_name = label.name.replace('.json', '.jpg')
-                    image_path = os.path.join(dataset_path, folder.name, image_name)
-                    annotation_path = str(label)
-                    print('evaluating image {}'.format(image_path))
-                    evaluation.evaluate(image_path, annotation_path, mode=evaluation_type, result_root=result_path)
+def evaluate(annotation_path, dataset_path, result_path, model, evaluation_type, is_negative):
+    if is_negative:
+        with open(dataset_path, 'r') as f:
+            for line in f.readlines():
+                path = line.strip()
+
+    else:
+        root_dir = Path(annotation_path)
+        evaluation = build_evaluation(model)
+        for folder in tqdm(root_dir.iterdir()):
+            if folder.is_dir():
+                for label in folder.iterdir():
+                    if label.name.endswith('.json'):
+                        image_name = label.name.replace('.json', '.jpg')
+                        image_path = os.path.join(dataset_path, folder.name, image_name)
+                        annotation_path = str(label)
+                        print('evaluating image {}'.format(image_path))
+                        evaluation.evaluate(image_path, annotation_path, mode=evaluation_type, result_root=result_path)
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='./dataset/all_data')
+    parser.add_argument('--is_negative, type=bool', default=False)
     parser.add_argument('--annotations', type=str, default="./dataset/Annotation")
     parser.add_argument('--output-dir', type=str, default='./results')
-    parser.add_argument('--evaluation_type', type=str, default='grid', choices=['grid', 'coordinate', 'coordinate_by_grid'])
+    parser.add_argument('--evaluation_type', type=str, default='grid', choices=['grid', 'coordinate', 'coordinate_by_grid', 'classification'])
     parser.add_argument('--model', type=str, default='InternVL3', choices=['InternVL3', 'Llava', 'uio2'])
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    evaluate(args.annotations, args.dataset, args.output_dir, args.model, args.evaluation_type)
+    evaluate(args.annotations, args.dataset, args.output_dir, args.model, args.evaluation_type, args.is_negative)
