@@ -152,9 +152,11 @@ class Evaluator:
     def _retireve_bbox(self, response_content):
         try:
             bboxes = json.loads(response_content)
+            if len(bboxes) == 0:
+                return [[0, 0, 0, 0]]
         except Exception:
             print(response_content)
-            bboxes = []
+            bboxes = [[0, 0, 0, 0]]
         return bboxes
 
     def _save_result(self, path: str, evaluation_result: dict, image_path: str, mode: str):
