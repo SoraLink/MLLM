@@ -90,6 +90,8 @@ class Evaluator:
 
 
     def _region_ids_to_box(self, region_ids, patch_box, rows=5, cols=5):
+        if len(region_ids) == 0:
+            return (0, 0, 0, 0)
         x1, y1, x2, y2 = patch_box
         cell_w = (x2 - x1) // cols
         cell_h = (y2 - y1) // rows
@@ -161,6 +163,7 @@ class Evaluator:
         path.mkdir(parents=True, exist_ok=True)
         img = evaluation_result.pop('img')
         json_path = path / 'results_{}.json'.format(mode)
+        print(evaluation_result)
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(evaluation_result, f)
         if isinstance(img, list):
@@ -216,6 +219,7 @@ def evaluate(annotation_path, dataset_path, result_path, model, evaluation_type)
                     image_name = label.name.replace('.json', '.jpg')
                     image_path = os.path.join(dataset_path, folder.name, image_name)
                     annotation_path = str(label)
+                    print('evaluating image {}'.format(image_path))
                     evaluation.evaluate(image_path, annotation_path, mode=evaluation_type, result_root=result_path)
 
 
