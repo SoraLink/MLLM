@@ -200,16 +200,16 @@ class Evaluator:
         path.mkdir(parents=True, exist_ok=True)
         if 'img' in evaluation_result:
             img = evaluation_result.pop('img')
+            if isinstance(img, list):
+                for idx, single_img in enumerate(img):
+                    filename = 'img-{}-{}.jpg'.format(mode, idx)
+                    cv2.imwrite(str(path / filename), single_img)
+            else:
+                cv2.imwrite(str(path / 'img_{}.jpg'.format(mode)), img)
         json_path = path / 'results_{}.json'.format(mode)
         print(evaluation_result)
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(evaluation_result, f)
-        if isinstance(img, list):
-            for idx, single_img in enumerate(img):
-                filename = 'img-{}-{}.jpg'.format(mode, idx)
-                cv2.imwrite(str(path / filename), single_img)
-        else:
-            cv2.imwrite(str(path / 'img_{}.jpg'.format(mode)), img)
 
     def _has_result(self, path: str, image_path: str, mode: str):
         image_path = Path(image_path)
