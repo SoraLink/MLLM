@@ -45,7 +45,7 @@ class Evaluator:
             gt_boxes = torch.tensor(boxes_gt)
             ious = box_iou(pred_boxes, gt_boxes)
             return {
-                'iou': ious,
+                'iou': ious.tolist(),
                 'predict_boxes': pred_boxes.tolist(),
                 'gt_boxes': gt_boxes.tolist(),
                 'response': prediction,
