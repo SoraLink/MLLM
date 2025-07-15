@@ -275,7 +275,7 @@ def evaluate(annotation_path, dataset_path, result_path, model, evaluation_type,
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='./dataset/all_data')
-    parser.add_argument('--is_negative, type=bool', default=False)
+    parser.add_argument('--is_negative', type=bool, default=False)
     parser.add_argument('--annotations', type=str, default="./dataset/Annotation")
     parser.add_argument('--output-dir', type=str, default='./results')
     parser.add_argument('--evaluation_type', type=str, default='grid', choices=['grid', 'coordinate', 'coordinate_by_grid', 'classification'])
