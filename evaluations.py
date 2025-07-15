@@ -198,7 +198,8 @@ class Evaluator:
         image_path = Path(image_path)
         path = Path(os.path.join(path, image_path.parent.name, image_path.name)).resolve()
         path.mkdir(parents=True, exist_ok=True)
-        img = evaluation_result.pop('img')
+        if 'img' in evaluation_result:
+            img = evaluation_result.pop('img')
         json_path = path / 'results_{}.json'.format(mode)
         print(evaluation_result)
         with open(json_path, 'w', encoding='utf-8') as f:
