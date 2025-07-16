@@ -254,14 +254,16 @@ def build_evaluation(model):
         raise NotImplementedError
 
 def evaluate(annotation_path, dataset_path, result_path, model, evaluation_type, is_negative):
+    evaluation = build_evaluation(model)
     if is_negative:
         with open(dataset_path, 'r') as f:
             for line in f.readlines():
                 path = line.strip()
+                print('evaluating image {}'.format(path))
+                evaluation.evaluate(path, None, mode=evaluation_type, result_root=result_path)
 
     else:
         root_dir = Path(annotation_path)
-        evaluation = build_evaluation(model)
         for folder in tqdm(root_dir.iterdir()):
             if folder.is_dir():
                 for label in folder.iterdir():
