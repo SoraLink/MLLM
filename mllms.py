@@ -165,7 +165,7 @@ class QwenVL:
                 "role": "user",
                 "content": [
                     {"type": "image", "image": image},
-                    {"type": "text", "text": "Describe this image in detail."},
+                    {"type": "text", "text": prompt},
                 ],
             }
         ]
