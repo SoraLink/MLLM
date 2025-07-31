@@ -189,6 +189,7 @@ class Evaluator:
             bboxes = json.loads(response_content)
             if len(bboxes) == 0:
                 return [[0, 0, 0, 0]]
+            bboxes = [[0, 0, 0, 0] if len(box) == 0 else box for box in bboxes]
         except Exception:
             print(response_content)
             bboxes = [[0, 0, 0, 0]]
