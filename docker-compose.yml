@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  ai-container:
+    image: ai-container
+    container_name: ai-container-runtime
+    volumes:
+      - F:\Experiment:/workspace
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
