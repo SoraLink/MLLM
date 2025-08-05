@@ -160,6 +160,7 @@ class QwenVL:
     def predict(self, image, prompt):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
+        image = image.resize((448, 448))
         messages = [
             {
                 "role": "user",
