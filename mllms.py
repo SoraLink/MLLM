@@ -1,5 +1,6 @@
 import base64
 import io
+import re
 
 import cv2
 import torch
@@ -191,5 +192,16 @@ class QwenVL:
         )
 
         print(output_text[0])
-        return output_text[0]
+        return self.extract_json_from_markdown(output_text[0])
+
+    def extract_json_from_markdown(self, text: str) -> str:
+        """
+        从包含 ```json ... ``` 的字符串中提取纯 JSON 字符串。
+        如果没有包裹则原样返回。
+        """
+        # 使用正则提取 ```json ... ``` 包裹的内容
+        match = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+        return text.strip()
 
