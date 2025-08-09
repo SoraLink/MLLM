@@ -136,7 +136,7 @@ class UIO2:
     def predict(self, image, prompt):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
-        answer = self.runner.refexp(image, prompt)
+        answer = self.runner.refexp(image, "the smoke")
 
         print(answer)
 
