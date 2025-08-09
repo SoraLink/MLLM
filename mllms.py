@@ -121,7 +121,7 @@ class UIO2:
     def __init__(self):
         self.preprocessor = UnifiedIOPreprocessor.from_pretrained(
             "allenai/uio2-preprocessor",
-            tokenizer="/d1/sunyu/sora/unified-io-2.pytorch/checkpoints/tokenizer.model",
+            tokenizer="/data/sora/unified-io-2.pytorch/checkpoints/tokenizer.model",
         )
         self.model = UnifiedIOModel.from_pretrained(
             "allenai/uio2-xxl",
