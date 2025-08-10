@@ -8,7 +8,7 @@ from PIL import Image
 from huggingface_hub import InferenceClient
 from qwen_vl_utils import process_vision_info
 from transformers import AutoProcessor, AutoModel, LlavaProcessor, LlavaForConditionalGeneration, pipeline, \
-    AutoModelForCausalLM, AutoTokenizer
+    AutoModelForCausalLM, AutoTokenizer, AutoModelForZeroShotObjectDetection
 from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
 
 
@@ -205,3 +205,38 @@ class QwenVL:
             return match.group(1).strip()
         return text.strip()
 
+
+class GroundingDINO:
+    _instance = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def __init__(self):
+        model_id = "grounding-dino-base"
+        self.processor = AutoProcessor.from_pretrained(model_id)
+        self.model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to('cuda')
+
+    def predict(self, image, prompt):
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = Image.fromarray(image)
+        text = "smoke"
+
+        inputs = self.processor(images=image, text=text, return_tensors="pt").to('cuda')
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+
+        results = self.processor.post_process_grounded_object_detection(
+            outputs,
+            inputs.input_ids,
+            box_threshold=0.4,
+            text_threshold=0.3,
+            target_sizes=[image.size[::-1]]  # 注意尺寸顺序翻转
+        )
+        result = results[0]
+        answer = result['boxes']
+        print(answer)
+        return str([answer])
