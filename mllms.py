@@ -246,5 +246,5 @@ class GroundingDINO:
         print(len(results))
         result = results[0]
         answer = result['boxes']
-        print(answer)
+        print(str([answer.tolist()]))
         return str([answer.tolist()])
