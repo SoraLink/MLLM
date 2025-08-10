@@ -216,7 +216,7 @@ class GroundingDINO:
         return cls._instance
 
     def __init__(self):
-        model_id = "grounding-dino-base"
+        model_id = "IDEA-Research/grounding-dino-base"
         self.processor = AutoProcessor.from_pretrained(
             model_id,
             token=True,
