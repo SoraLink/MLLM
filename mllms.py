@@ -243,6 +243,7 @@ class GroundingDINO:
             threshold=0.4,
             target_sizes=[image.size[::-1]]  # 注意尺寸顺序翻转
         )
+        print(len(results))
         result = results[0]
         answer = result['boxes']
         print(answer)
