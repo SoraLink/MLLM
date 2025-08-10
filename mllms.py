@@ -231,7 +231,7 @@ class GroundingDINO:
     def predict(self, image, prompt):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
-        text = "smoke"
+        text = "smoke."
 
         inputs = self.processor(images=image, text=text, return_tensors="pt").to('cuda')
         with torch.no_grad():
