@@ -11,7 +11,7 @@ from torchvision.ops import box_iou
 from tqdm import tqdm
 
 from mllm_smoke_locate import ImagePreprocess, get_annotation_grid_number, compute_grid_IoU, add_bbox
-from mllms import MLLM_LLAVA, InternVL3, UIO2, QwenVL
+from mllms import MLLM_LLAVA, InternVL3, UIO2, QwenVL, GroundingDINO
 
 import os
 
@@ -250,6 +250,12 @@ class QWen2VLEvaluation(Evaluator):
         super().__init__()
         self.model = QwenVL.get_instance()
 
+class GroundingDinoEvaluation(Evaluator):
+
+    def __init__(self):
+        super().__init__()
+        self.model = GroundingDINO()
+
 def build_evaluation(model):
     if model == 'InternVL3':
         return InternVL3Evaluation()
@@ -259,6 +265,8 @@ def build_evaluation(model):
         return UIO2Evaluation()
     elif model == 'QwenVL':
         return QWen2VLEvaluation()
+    elif model == 'GroundingDino':
+        return GroundingDinoEvaluation()
     else:
         raise NotImplementedError
 
@@ -291,7 +299,7 @@ def parse_args():
     parser.add_argument('--annotations', type=str, default="./dataset/Annotation")
     parser.add_argument('--output-dir', type=str, default='./results')
     parser.add_argument('--evaluation_type', type=str, default='grid', choices=['grid', 'coordinate', 'coordinate_by_grid', 'classification'])
-    parser.add_argument('--model', type=str, default='InternVL3', choices=['InternVL3', 'Llava', 'uio2', 'QwenVL'])
+    parser.add_argument('--model', type=str, default='InternVL3', choices=['InternVL3', 'Llava', 'uio2', 'QwenVL', 'GroundingDino'])
     return parser.parse_args()
 
 
