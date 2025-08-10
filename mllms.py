@@ -217,8 +217,16 @@ class GroundingDINO:
 
     def __init__(self):
         model_id = "grounding-dino-base"
-        self.processor = AutoProcessor.from_pretrained(model_id)
-        self.model = AutoModelForZeroShotObjectDetection.from_pretrained(model_id).to('cuda')
+        self.processor = AutoProcessor.from_pretrained(
+            model_id,
+            token=True,
+            trust_remote_code=True  # GroundingDINO 通常需要
+        )
+        self.model = AutoModelForZeroShotObjectDetection.from_pretrained(
+            model_id,
+            token=True,
+            trust_remote_code=True  # GroundingDINO 通常需要
+        ).to('cuda')
 
     def predict(self, image, prompt):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
