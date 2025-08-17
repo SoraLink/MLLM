@@ -331,7 +331,7 @@ def parse_args():
     parser.add_argument('--is_negative', type=bool, default=False)
     parser.add_argument('--annotations', type=str, default="./dataset/Annotation")
     parser.add_argument('--output-dir', type=str, default='./results')
-    parser.add_argument('--evaluation_type', type=str, default='grid', choices=['grid', 'coordinate', 'coordinate_by_grid', 'classification'])
+    parser.add_argument('--evaluation_type', type=str, default='grid', choices=['grid', 'coordinate', 'coordinate_by_grid', 'classification', 'subimage_classification'])
     parser.add_argument('--model', type=str, default='InternVL3', choices=['InternVL3', 'Llava', 'uio2', 'QwenVL', 'GroundingDino'])
     return parser.parse_args()
 
