@@ -53,9 +53,42 @@ class Evaluator:
             result = self._evaluate_coordinate_by_grid(image_path, annotation_path)
         elif mode == 'classification':
             result = self._evaluate_classification(image_path)
+        elif mode == 'subimage_classification':
+            result = self._evaluate_subimage_classification(image_path, annotation_path)
         else:
             raise ValueError('No such mode: {}'.format(mode))
         self._save_result(result_root, result, image_path, mode)
+
+    def _evaluate_subimage_classification(self, image_path, annotation_path):
+        image = cv2.imread(image_path)
+        h, w, c = image.shape
+
+        h_block = h // 3
+        w_block = w // 4
+
+        sub_images = []
+
+        for i in range(3):
+            for j in range(4):
+                y1, y2 = i * h_block, (i + 1) * w_block
+                x1, x2 = j * w_block, (j + 1) * h_block
+                sub_image = image[y1:y2, x1:x2]
+                sub_images.append(sub_image)
+        results = self.model.batch_predict(sub_images, self.prompt_classification)
+        predict_grids = []
+        for i, result in enumerate(results):
+            if 'True' in result or 'true' in result:
+                predict_grids.append(i+1)
+        annotation_grids = get_annotation_grid_number(annotation_path, image, rows=3, cols=4)
+        iou = compute_grid_IoU(set(predict_grids), set(annotation_grids))
+        return {
+            'iou': iou,
+            'predict_grids': predict_grids,
+            'annotation_grids': annotation_grids,
+            'response': results
+        }
+
+
 
     def _evaluate_classification(self, image_path):
         image = cv2.imread(image_path)

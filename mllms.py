@@ -194,6 +194,52 @@ class QwenVL:
         print(output_text[0])
         return self.extract_json_from_markdown(output_text[0])
 
+    def batch_predict(self, images, prompt):
+
+        texts = []
+        images_inputs_batch = []
+        videos_inputs_batch = []
+        for image in images:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            image = Image.fromarray(image)
+            image = image.resize((448, 448))
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image", "image": image},
+                        {"type": "text", "text": prompt},
+                    ],
+                }
+            ]
+            text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            image_inputs, video_inputs = process_vision_info(messages)
+            texts.append(text)
+            images_inputs_batch.append(image_inputs)
+            videos_inputs_batch.append(video_inputs)
+
+        inputs = self.processor(
+            text=texts,
+            images=images_inputs_batch,
+            videos=videos_inputs_batch,
+            padding=True,
+            return_tensors="pt",
+        )
+
+        inputs = inputs.to("cuda")
+        generated_ids = self.model.generate(**inputs, max_new_tokens=128)
+        generated_ids_trimmed = [
+            out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+        ]
+        output_text = self.processor.batch_decode(
+            generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
+        )
+
+        outputs = []
+        for output in output_text:
+            outputs.append(self.extract_json_from_markdown(output))
+        return outputs
+
     def extract_json_from_markdown(self, text: str) -> str:
         """
         从包含 ```json ... ``` 的字符串中提取纯 JSON 字符串。
