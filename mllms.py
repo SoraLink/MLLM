@@ -152,7 +152,7 @@ class QwenVL:
         return cls._instance
 
     def __init__(self):
-        model_id = "Qwen/Qwen2.5-VL-32B-Instruct"  # 或 Qwen2.5-VL-32B-Instruct
+        model_id = "Qwen/Qwen2.5-VL-7B-Instruct"  # 或 Qwen2.5-VL-32B-Instruct
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             model_id, torch_dtype="auto", device_map="auto"
         )
