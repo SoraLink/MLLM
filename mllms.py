@@ -221,7 +221,7 @@ class QwenVL:
         inputs = self.processor(
             text=texts,
             images=images_inputs_batch,
-            videos=videos_inputs_batch,
+            videos=None,
             padding=True,
             return_tensors="pt",
         )
