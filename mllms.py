@@ -294,3 +294,32 @@ class GroundingDINO:
         answer = result['boxes']
         print(str(answer.tolist()))
         return str(answer.tolist())
+
+class IDEFICS2:
+    _instance = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def __init__(self):
+        self.pipe = pipeline(
+            "image-text-to-text",
+            model="HuggingFaceM4/idefics2-8b",
+            device_map="auto"
+        )
+
+    def predict(self, image, prompt):
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        pil_img = Image.fromarray(image)
+
+        result = self.pipe({
+            "text": prompt,
+            "images": pil_img
+        })
+        return result[0]["generated_text"]
+
+
+
