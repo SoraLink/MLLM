@@ -312,10 +312,12 @@ class IDEFICS2:
         )
 
     def predict(self, image, prompt):
-        print(type(image))
-        print(type(prompt))
+
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         pil_img = Image.fromarray(image)
+
+        if "<image>" not in prompt:
+            prompt = "<image>\n" + prompt
 
         result = self.pipe({
             "text": prompt,
