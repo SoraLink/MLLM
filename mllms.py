@@ -308,24 +308,27 @@ class IDEFICS2:
     def __init__(self):
         model_id = "HuggingFaceM4/idefics2-8b"
 
-        # 强制单卡：不使用 device_map，不做分片
+        # 1) 整模上单卡
         self.model = Idefics2ForConditionalGeneration.from_pretrained(
             model_id,
-            torch_dtype=torch.bfloat16,   # 如果你的卡不支持 bfloat16，换成 torch.float16
+            torch_dtype=torch.bfloat16,   # or torch.float16
             device_map=None,
             low_cpu_mem_usage=True
-        ).to("cuda")                      # 👈 整模型搬到同一块 GPU
+        ).to("cuda")
 
         self.processor = AutoProcessor.from_pretrained(model_id)
+        # 可选：如果没用过切块
+        self.processor.image_processor.do_image_splitting = False
 
-        # 如果训练没用过图像切块，推理时请关闭（避免形状/数量不一致）
-        self.processor.image_processor.do_image_splitting = False  # 官方建议
+        # ✅ 关键：默认新建张量都在 CUDA，避免 forward 里 linspace 等落到 CPU
+        torch.set_default_device("cuda")
 
-        # pipeline 要显式给 processor（否则会报 unknown processor）
+        # ✅ 关键：pipeline 也固定到这块卡
         self.pipe = pipeline(
             task="image-text-to-text",
             model=self.model,
-            processor=self.processor
+            processor=self.processor,
+            device=0
         )
 
     def predict(self, image, prompt):
