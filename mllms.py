@@ -5,10 +5,11 @@ import re
 import cv2
 import torch
 from PIL import Image
+from accelerate import dispatch_model, infer_auto_device_map
 from huggingface_hub import InferenceClient
 from qwen_vl_utils import process_vision_info
 from transformers import AutoProcessor, AutoModel, LlavaProcessor, LlavaForConditionalGeneration, pipeline, \
-    AutoModelForCausalLM, AutoTokenizer, AutoModelForZeroShotObjectDetection
+    AutoModelForCausalLM, AutoTokenizer, AutoModelForZeroShotObjectDetection, Idefics2ForConditionalGeneration
 from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
 
 
@@ -305,10 +306,49 @@ class IDEFICS2:
         return cls._instance
 
     def __init__(self):
+        model_id = "HuggingFaceM4/idefics2-8b"
+
+        # 1) 加载模型到 meta，节省内存，后续再分配设备
+        self.model = Idefics2ForConditionalGeneration.from_pretrained(
+            model_id,
+            torch_dtype=torch.bfloat16,  # 或者 torch.float16 视GPU而定
+            low_cpu_mem_usage=True,
+            device_map=None  # 先不要auto
+        )
+        self.processor = AutoProcessor.from_pretrained(model_id)
+
+        # 2) 自动推断分片，但不要把视觉分支拆开
+        #    no_split 避免层被切碎；include_buffers=True 确保 buffer 也随模块走同一设备
+        max_mem = {i: "90GiB" for i in range(torch.cuda.device_count())}  # 根据你的机器改
+        device_map = infer_auto_device_map(
+            self.model,
+            dtype=torch.bfloat16,
+            max_memory=max_mem,
+            no_split_module_classes=[
+                "Idefics2VisionEncoderLayer",
+                "Idefics2DecoderLayer",
+                "Idefics2VisionModel"
+            ],
+            include_buffers=True
+        )
+
+        # 3) 强制把整个视觉分支放到同一张GPU（选第一张可用卡）
+        #    这样就不会在 vision embeddings 里出现 bucketize 的跨设备冲突
+        vision_gpu = next(iter(max_mem.keys()))  # 不硬编码为0，自动取一张
+        for name in list(device_map.keys()):
+            if name.startswith("model.vision_model"):
+                device_map[name] = vision_gpu
+
+        # 4) 按映射把模型分发到多卡
+        dispatch_model(self.model, device_map=device_map, offload_dir=None)
+
+        # 5) pipeline 直接用已经分片的 model；不要再传 device 或 device_map
         self.pipe = pipeline(
-            "image-text-to-text",
-            model="HuggingFaceM4/idefics2-8b",
-            device_map="auto"
+            task="image-text-to-text",
+            model=self.model,
+            tokenizer=self.processor.tokenizer,
+            image_processor=self.processor.image_processor
+            # 不要再传 device / device_map，避免覆盖我们上面的分片
         )
 
     def predict(self, image, prompt):
