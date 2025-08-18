@@ -348,5 +348,39 @@ class IDEFICS2:
             text = text[len(prompt):].lstrip()
         return text
 
+    def batch_predict(self, images, prompt):
+        pil_images = []
+        for image in images:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            image = Image.fromarray(image)
+            pil_images.append(Image.fromarray(image))
+
+        if "<image>" not in prompt:
+            prompt = "<image>\n" + prompt
+
+        prompts = [prompt] * len(pil_images)
+        inputs = [{"text": p, "images": im} for p, im in zip(prompts, pil_images)]
+
+        default_kwargs = dict(
+            max_new_tokens=128,
+            do_sample=False,       # 默认为贪心/近似贪心，更稳定
+            temperature=0.2,       # 若 do_sample=True 再调温度
+        )
+
+        with torch.inference_mode():
+            outputs = self.pipe(
+                inputs,
+                batch_size=12,
+            )
+
+        results = []
+        for p, out in zip(prompts, outputs):
+            text = out[0]["generated_text"] if isinstance(out, list) else out["generated_text"]
+            if text.startswith(p):
+                text = text[len(p):].lstrip()
+            results.append(text)
+
+        return results
+
 
 
