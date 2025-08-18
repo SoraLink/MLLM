@@ -329,7 +329,7 @@ class IDEFICS2:
                 "Idefics2DecoderLayer",
                 "Idefics2VisionModel"
             ],
-            include_buffers=True
+            offload_buffers=True
         )
 
         # 3) 强制把整个视觉分支放到同一张GPU（选第一张可用卡）
