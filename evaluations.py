@@ -220,7 +220,8 @@ class Evaluator:
 
     def _retireve_bbox(self, response_content):
         try:
-            bboxes = json.loads(response_content)
+            matches = re.findall(r"\[\s*\[.*?\]\s*\]", response_content, flags=re.DOTALL)
+            bboxes = json.loads(matches)
             if len(bboxes) == 0:
                 return [[0, 0, 0, 0]]
             bboxes = [[0, 0, 0, 0] if len(box) == 0 else box for box in bboxes]
