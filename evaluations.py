@@ -112,7 +112,10 @@ class Evaluator:
             boxes_gt = json_gt['det_boxes']
             pred_boxes = torch.tensor(bboxes)
             gt_boxes = torch.tensor(boxes_gt)
-            ious = box_iou(pred_boxes, gt_boxes)
+            try:
+                ious = box_iou(pred_boxes, gt_boxes)
+            except IndexError:
+                ious = [[0]]
             return {
                 'iou': ious.tolist(),
                 'predict_boxes': pred_boxes.tolist(),
