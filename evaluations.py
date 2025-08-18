@@ -225,6 +225,7 @@ class Evaluator:
         try:
             matches = re.findall(r"\[\s*\[.*?\]\s*\]", response_content, flags=re.DOTALL)
             bboxes = json.loads(matches[0])
+            bboxes = [b for b in bboxes if b]
             if len(bboxes) == 0:
                 return [[0, 0, 0, 0]]
             bboxes = [[0, 0, 0, 0] if len(box) == 0 else box for box in bboxes]
