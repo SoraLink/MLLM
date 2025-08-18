@@ -319,7 +319,7 @@ class IDEFICS2:
 
         # 2) 自动推断分片，但不要把视觉分支拆开
         #    no_split 避免层被切碎；include_buffers=True 确保 buffer 也随模块走同一设备
-        max_mem = {i: "90GiB" for i in range(torch.cuda.device_count())}  # 根据你的机器改
+        max_mem = {i: "75GiB" for i in range(torch.cuda.device_count())}  # 根据你的机器改
         device_map = infer_auto_device_map(
             self.model,
             dtype=torch.bfloat16,
