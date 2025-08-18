@@ -332,18 +332,22 @@ class IDEFICS2:
         )
 
     def predict(self, image, prompt):
-
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         pil_img = Image.fromarray(image)
 
         if "<image>" not in prompt:
             prompt = "<image>\n" + prompt
 
-        result = self.pipe({
-            "text": prompt,
-            "images": pil_img
-        })
-        return result[0]["generated_text"]
+        with torch.inference_mode():
+            out = self.pipe({"text": prompt, "images": pil_img})
+
+        text = out[0]["generated_text"]
+
+        # 移除 prompt 部分，只留模型生成的回答
+        if text.startswith(prompt):
+            text = text[len(prompt):].lstrip()
+
+        return text
 
 
 
