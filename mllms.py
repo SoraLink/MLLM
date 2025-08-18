@@ -347,8 +347,6 @@ class IDEFICS2:
             task="image-text-to-text",
             model=self.model,
             processor=self.processor,
-            tokenizer=self.processor.tokenizer,
-            image_processor=self.processor.image_processor
             # 不要再传 device / device_map，避免覆盖我们上面的分片
         )
 
