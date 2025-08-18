@@ -346,7 +346,7 @@ class IDEFICS2:
         # 移除 prompt 部分，只留模型生成的回答
         if text.startswith(prompt):
             text = text[len(prompt):].lstrip()
-
+        print(text)
         return text
 
 
