@@ -115,7 +115,7 @@ class Evaluator:
             try:
                 ious = box_iou(pred_boxes, gt_boxes)
             except IndexError:
-                ious = [[0]]
+                ious = torch.tensor([[0]])
             return {
                 'iou': ious.tolist(),
                 'predict_boxes': pred_boxes.tolist(),
