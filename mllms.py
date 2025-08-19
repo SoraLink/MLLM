@@ -1,5 +1,6 @@
 import base64
 import io
+import json
 import re
 
 import cv2
@@ -380,27 +381,10 @@ class IDEFICS2:
         return results
 
     def _extract_text(self, out):
-        # 兼容返回为 dict（含 generated_text）或“对话列表”
-        if isinstance(out, dict):
-            if "generated_text" in out:
-                return out["generated_text"]
-            if "content" in out and isinstance(out["content"], str):
-                return out["content"]
-        if isinstance(out, list):
-            # 这是“对话”：找最后一条 assistant
-            for msg in reversed(out):
-                if isinstance(msg, dict) and msg.get("role") == "assistant":
-                    c = msg.get("content", "")
-                    if isinstance(c, str):
-                        return c
-                    # 兼容分段 content
-                    if isinstance(c, list):
-                        parts = []
-                        for seg in c:
-                            if isinstance(seg, dict) and seg.get("type") == "text":
-                                parts.append(seg.get("text", ""))
-                        if parts:
-                            return "".join(parts)
+        print(type(out))
+        js = json.load(out)
+        generated_text = js["generated_text"]
+
         return str(out)
 
 
