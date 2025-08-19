@@ -353,7 +353,7 @@ class IDEFICS2:
         for image in images:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(image)
-            pil_images.append(Image.fromarray(image))
+            pil_images.append(image)
 
         if "<image>" not in prompt:
             prompt = "<image>\n" + prompt
