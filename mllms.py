@@ -371,6 +371,8 @@ class IDEFICS2:
                     batch_size=min(12, len(conversations)),
                     max_new_tokens=16,
                     do_sample=False,
+                    padding=True,  # ← 关键：按 batch 内最长样本 pad
+                    truncation=True,  # ← 建议：防止个别极长样本
                 )
 
         results = []
