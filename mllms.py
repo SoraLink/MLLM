@@ -355,24 +355,53 @@ class IDEFICS2:
             image = Image.fromarray(image)
             pil_images.append(image)
 
-        batch_messages = [{
+        conversations = [[{  # 每个元素是一段只有一条 user 消息的对话
             "role": "user",
             "content": [
                 {"type": "image", "image": im},
-                {"type": "text", "text": prompt}
+                {"type": "text", "text": prompt},
             ],
-        } for im in pil_images]
+        }] for im in pil_images]
 
         with torch.inference_mode():
             with torch.inference_mode():
-                outputs = self.pipe(batch_messages, batch_size=min(12, len(batch_messages)))
+                outputs = self.pipe(
+                    conversations,
+                    batch_size=min(12, len(conversations)),
+                    max_new_tokens=16,
+                    do_sample=False,
+                )
 
         results = []
         for out in outputs:
             # 兼容不同 transformers 版本的返回结构
-            text = out["generated_text"] if isinstance(out, dict) else out[0]["generated_text"]
+            text = self._extract_text(out)
             results.append(text)
         return results
+
+    def _extract_text(self, out):
+        # 兼容返回为 dict（含 generated_text）或“对话列表”
+        if isinstance(out, dict):
+            if "generated_text" in out:
+                return out["generated_text"]
+            if "content" in out and isinstance(out["content"], str):
+                return out["content"]
+        if isinstance(out, list):
+            # 这是“对话”：找最后一条 assistant
+            for msg in reversed(out):
+                if isinstance(msg, dict) and msg.get("role") == "assistant":
+                    c = msg.get("content", "")
+                    if isinstance(c, str):
+                        return c
+                    # 兼容分段 content
+                    if isinstance(c, list):
+                        parts = []
+                        for seg in c:
+                            if isinstance(seg, dict) and seg.get("type") == "text":
+                                parts.append(seg.get("text", ""))
+                        if parts:
+                            return "".join(parts)
+        return str(out)
 
 
 
