@@ -381,11 +381,11 @@ class IDEFICS2:
         return results
 
     def _extract_text(self, out):
-        print(type(out))
-        js = json.load(out)
-        generated_text = js["generated_text"]
-
-        return str(out)
+        generated_texts = out["generated_text"]
+        for text in generated_texts:
+            if text['role'] == 'assistant':
+                return text['content']
+        raise ValueError
 
 
 
