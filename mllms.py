@@ -355,31 +355,23 @@ class IDEFICS2:
             image = Image.fromarray(image)
             pil_images.append(image)
 
-        if "<image>" not in prompt:
-            prompt = "<image>\n" + prompt
-
-        prompts = [prompt] * len(pil_images)
-        inputs = [{"text": p, "images": im} for p, im in zip(prompts, pil_images)]
-
-        default_kwargs = dict(
-            max_new_tokens=128,
-            do_sample=False,       # 默认为贪心/近似贪心，更稳定
-            temperature=0.2,       # 若 do_sample=True 再调温度
-        )
+        batch_messages = [{
+            "role": "user",
+            "content": [
+                {"type": "image", "image": im},
+                {"type": "text", "text": prompt}
+            ],
+        } for im in pil_images]
 
         with torch.inference_mode():
-            outputs = self.pipe(
-                inputs,
-                batch_size=12,
-            )
+            with torch.inference_mode():
+                outputs = self.pipe(batch_messages, batch_size=min(12, len(batch_messages)))
 
         results = []
-        for p, out in zip(prompts, outputs):
-            text = out[0]["generated_text"] if isinstance(out, list) else out["generated_text"]
-            if text.startswith(p):
-                text = text[len(p):].lstrip()
+        for out in outputs:
+            # 兼容不同 transformers 版本的返回结构
+            text = out["generated_text"] if isinstance(out, dict) else out[0]["generated_text"]
             results.append(text)
-
         return results
 
 
