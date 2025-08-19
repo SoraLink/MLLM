@@ -381,7 +381,7 @@ class IDEFICS2:
         return results
 
     def _extract_text(self, out):
-        generated_texts = out["generated_text"]
+        generated_texts = out[0]["generated_text"]
         for text in generated_texts:
             if text['role'] == 'assistant':
                 return text['content']
