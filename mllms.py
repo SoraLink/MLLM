@@ -364,19 +364,34 @@ class IDEFICS2:
             ],
         }] for im in pil_images]
 
-        with torch.inference_mode():
-            with torch.inference_mode():
-                outputs = self.pipe(
-                    conversations,
-                    batch_size=min(12, len(conversations)),
-                    max_new_tokens=16,
-                    do_sample=False,
-                    padding=True,  # ← 关键：按 batch 内最长样本 pad
-                    truncation=True,  # ← 建议：防止个别极长样本
-                )
+        # 2) 展开 chat 模板（官方推荐）
+        texts = [self.processor.apply_chat_template(conv, add_generation_prompt=True, tokenize=False)
+                 for conv in conversations]
 
+        # 3) 统一 padding（完全绕开 pipeline 的 collate）
+        tok = self.processor.tokenizer
+        if tok.pad_token is None:
+            tok.pad_token = tok.eos_token
+        tok.padding_side = "left"  # 生成场景更稳
+
+        enc = self.processor(
+            text=texts,
+            images=pil_images,
+            return_tensors="pt",
+            padding=True,  # ← 关键
+            truncation=True,  # ← 防个别极长样本
+            # pad_to_multiple_of=8,  # 可选：Tensor Core 友好
+        ).to(self.model.device)
+
+        # 4) 生成
+        with torch.inference_mode():
+            ids = self.model.generate(**enc, max_new_tokens=16, do_sample=False)
+
+        # 5) 解码为纯生成文本（不含输入）
+        outs = self.processor.batch_decode(ids, skip_special_tokens=True)
         results = []
-        for out in outputs:
+
+        for out in outs:
             # 兼容不同 transformers 版本的返回结构
             text = self._extract_text(out)
             results.append(text)
