@@ -38,7 +38,7 @@ class Evaluator:
 
         self.prompt_classification = (
             'Please look at this image. Detect if the image contains smoke. '
-            'If you can find any smoke, return True. Otherwise, return False.'
+            'If you can find any smoke, return True. Otherwise, return False. Do MUST not return any other words'
         )
 
     def evaluate(self, image_path, annotation_path, mode, result_root):
