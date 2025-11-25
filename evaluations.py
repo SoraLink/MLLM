@@ -22,7 +22,7 @@ class Evaluator:
 
     def __init__(self):
         self.prompt_bbox = (
-            'Detect all smoke and output bounding box like'
+            'Detect all smoke and output bounding box in the format'
             '[[x1, y1, x2, y2], [x1, y1, x2, y2]] '
             "If you cannot find any smoke return empty list [] without other words"
             "Do not return dict!"
